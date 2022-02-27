@@ -1,2 +1,2 @@
-model_checkpoint_path: "verification_model"
-all_model_checkpoint_paths: "verification_model"
+model_checkpoint_path: "autoencoder_weights_mono_missing"
+all_model_checkpoint_paths: "autoencoder_weights_mono_missing"
