@@ -49,8 +49,13 @@ for i in range(n):
     # display reconstruction
     ax = plt.subplot(2, n, i + 1)
     plt.imshow(decoded_imgs_random[i])
-    plt.title("reconstructed")
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
+plt.suptitle("" + str(n) + " generated images", fontsize="x-large")
+
+# Save figure
+plt.savefig("./results/ae-gen-mono")
+
+# Show image
 plt.show()
