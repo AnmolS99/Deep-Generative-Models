@@ -2,7 +2,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 from autoencoder import AutoEncoder
 from stacked_mnist import DataMode, StackedMNISTData
-from verification_net import VerificationNet
 
 # Creating generators using standard MNIST
 gen_missing = StackedMNISTData(mode=DataMode.MONO_BINARY_MISSING,
