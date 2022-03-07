@@ -1,7 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
 from autoencoder import AutoEncoder
-from autoencoder2 import AutoEncoder2
 from stacked_mnist import DataMode, StackedMNISTData
 from verification_net import VerificationNet
 
@@ -14,7 +13,7 @@ class AEBasic:
                  save_weigths=False,
                  save_image=False) -> None:
         # Creating AutoEncoder
-        self.autoencoder = AutoEncoder2(latent_dim)
+        self.autoencoder = AutoEncoder(latent_dim)
         self.three_colors = three_colors
         self.save_weigths = save_weigths
         self.save_image = save_image
