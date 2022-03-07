@@ -16,10 +16,10 @@ class AutoEncoder(Model):
         self.encoder = tf.keras.Sequential([
             layers.Input(shape=(28, 28, 1)),
             layers.Flatten(),
+            layers.Dense(784, activation="relu"),
             layers.Dense(512, activation="relu"),
             layers.Dense(128, activation="relu"),
             layers.Dense(32, activation="relu"),
-            layers.Dense(16, activation="relu"),
             layers.Dense(latent_dim, activation="relu")
         ])
 
@@ -27,7 +27,7 @@ class AutoEncoder(Model):
             layers.Dense(32, activation="relu"),
             layers.Dense(128, activation="relu"),
             layers.Dense(512, activation="relu"),
-            layers.Dense(28**2, activation="sigmoid"),
+            layers.Dense(784, activation="sigmoid"),
             layers.Reshape((28, 28, 1)),
         ])
 

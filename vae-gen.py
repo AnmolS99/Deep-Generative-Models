@@ -1,67 +1,126 @@
-import matplotlib.pyplot as plt
-
-from stacked_mnist import DataMode, StackedMNISTData
+from matplotlib import pyplot as plt
+import numpy as np
 from variational_autoencoder import VariationalAutoEncoder
+from stacked_mnist import DataMode, StackedMNISTData
 from verification_net import VerificationNet
 
-latent_dim = 3
-vae = VariationalAutoEncoder(latent_dim)
 
-gen = StackedMNISTData(mode=DataMode.MONO_BINARY_COMPLETE,
-                       default_batch_size=2048)
-# Getting training and test data
-x_train, y_train = gen.get_full_data_set(training=True)
-x_test, y_test = gen.get_full_data_set(training=False)
+class VAEGen:
 
-# Reshaping
-x_train = x_train[:, :, :, [0]]
-x_test = x_test[:, :, :, [0]]
+    def __init__(self,
+                 n=10,
+                 latent_dim=3,
+                 three_colors=False,
+                 save_weigths=False,
+                 save_image=False) -> None:
+        self.n = n
+        self.latent_dim = latent_dim
+        # Creating VAE
+        self.var_autoencoder = VariationalAutoEncoder(latent_dim)
+        self.three_colors = three_colors
+        self.save_weigths = save_weigths
+        self.save_image = save_image
+        self.gen = self.get_generator(self.three_colors)
+        self.ver_net = VerificationNet()
 
-vae.train(x=x_train,
-          y=x_train,
-          batch_size=512,
-          epochs=100,
-          validation_data=(x_test, x_test),
-          save_weights=False)
+    def get_generator(self, three_colors):
+        # Returning a generator that uses standard MNIST
+        if three_colors:
+            return StackedMNISTData(mode=DataMode.COLOR_BINARY_COMPLETE,
+                                    default_batch_size=2048)
+        # Returning a generator that uses stacked MNIST
+        else:
+            return StackedMNISTData(mode=DataMode.MONO_BINARY_COMPLETE,
+                                    default_batch_size=2048)
 
-# Sending the images through the AE to get reconstructed images
-z_sample = vae.prior.sample(10)
-decoded_imgs_mode = vae.decoder(z_sample).mode().numpy()
-decoded_imgs_mean = vae.decoder(z_sample).mean().numpy()
+    def get_train_test(self, gen):
+        # Getting training and test data
+        x_train, y_train = gen.get_full_data_set(training=True)
+        x_test, y_test = gen.get_full_data_set(training=False)
+        return x_train, y_train, x_test, y_test
 
-# Using VerNet to get predictability and accuracy
-ver_net = VerificationNet()
-pred, acc = ver_net.check_predictability(decoded_imgs_mode)
-coverage = ver_net.check_class_coverage(decoded_imgs_mode)
-print("For mode - Pred: " + str(pred) + ", coverage: " + str(coverage))
+    def train_var_autoencoder(self):
+        x_train, y_train, x_test, y_test = self.get_train_test(self.gen)
 
-pred, acc = ver_net.check_predictability(decoded_imgs_mean)
-coverage = ver_net.check_class_coverage(decoded_imgs_mean)
-print("For mode - Pred: " + str(pred) + ", coverage: " + str(coverage))
+        # Reshaping
+        x_train = x_train[:, :, :, [0]]
+        x_test = x_test[:, :, :, [0]]
 
-# Showing the original images and reconstructed images
-n = 10
-plt.figure(figsize=(20, 6))
-for i in range(n):
-    # display generated images by taking mode of output
-    ax = plt.subplot(2, n, i + 1)
-    plt.imshow(decoded_imgs_mode[i])
-    plt.title("gen. mode")
-    plt.gray()
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
+        # Training the AE
+        self.var_autoencoder.train(x_train,
+                                   x_train,
+                                   batch_size=512,
+                                   epochs=20,
+                                   shuffle=True,
+                                   validation_data=(x_test, x_test),
+                                   verbose=True,
+                                   save_weights=self.save_weigths)
 
-    # display generated images by taking mean of output
-    ax = plt.subplot(2, n, i + 1 + n)
-    plt.imshow(decoded_imgs_mean[i])
-    plt.title("gen. mean")
-    plt.gray()
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-plt.suptitle("" + str(n) + " images generated", fontsize="x-large")
+    def run(self):
+        # Training the autoencoder
+        self.train_var_autoencoder()
 
-# Save figure
-plt.savefig("./results/vae-gen")
+        if self.three_colors:
+            generated_images = []
+            for i in range(3):
+                # Sending the images through the AE to get reconstructed images
+                z_sample = self.var_autoencoder.prior.sample(self.n)
+                generated_image = self.var_autoencoder.decoder(
+                    z_sample).mode().numpy()
+                generated_images.append(np.squeeze(generated_image))
 
-# Show image
-plt.show()
+            # Combining the different color channel images to one stacked image
+            generated_images = np.stack(generated_images, axis=-1)
+
+            # Printing out quality and coverage
+            quality, _ = self.ver_net.check_predictability(generated_images)
+            coverage = self.ver_net.check_class_coverage(generated_images)
+            print("Quality: " + str(quality))
+            print("Coverage: " + str(coverage))
+
+            self.show_figure(self.n, generated_images)
+
+        else:
+            # Sending the images through the AE to get reconstructed images
+            z_sample = self.var_autoencoder.prior.sample(self.n)
+            generated_images = self.var_autoencoder.decoder(
+                z_sample).mode().numpy()
+
+            # Printing out quality and coverage
+            quality, _ = self.ver_net.check_predictability(generated_images)
+            coverage = self.ver_net.check_class_coverage(generated_images)
+            print("Quality: " + str(quality))
+            print("Coverage: " + str(coverage))
+
+            self.show_figure(self.n, generated_images)
+
+    def show_figure(self, n, generated):
+
+        # Showing the decoded images
+        plt.figure(figsize=(20, 4))
+        for i in range(n):
+            # display reconstruction
+            ax = plt.subplot(2, n, i + 1)
+            plt.imshow(generated[i])
+            plt.gray()
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+        plt.suptitle("" + str(n) + " generated images", fontsize="x-large")
+
+        # Choosing filepath
+        if self.three_colors:
+            path = "./results/vae-gen-color"
+        else:
+            path = "./results/vae-gen-mono"
+
+        if self.save_image:
+            # Save figure
+            plt.savefig(path)
+
+        # Show image
+        plt.show()
+
+
+if __name__ == "__main__":
+    vae_basic = VAEGen(three_colors=True, save_image=True)
+    vae_basic.run()

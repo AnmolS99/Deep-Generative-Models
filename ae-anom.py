@@ -58,11 +58,12 @@ class AEAnom:
         # Training the AE
         self.autoencoder.train(x_train,
                                x_train,
+                               batch_size=512,
                                epochs=20,
                                shuffle=True,
                                validation_data=(x_test, x_test),
                                verbose=True,
-                               save_weights=False)
+                               save_weights=self.save_weigths)
 
     def run(self):
         # Training the autoencoder

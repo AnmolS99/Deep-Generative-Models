@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 from autoencoder import AutoEncoder
+from autoencoder2 import AutoEncoder2
 from stacked_mnist import DataMode, StackedMNISTData
 from verification_net import VerificationNet
 
@@ -13,7 +14,7 @@ class AEBasic:
                  save_weigths=False,
                  save_image=False) -> None:
         # Creating AutoEncoder
-        self.autoencoder = AutoEncoder(latent_dim)
+        self.autoencoder = AutoEncoder2(latent_dim)
         self.three_colors = three_colors
         self.save_weigths = save_weigths
         self.save_image = save_image
@@ -46,11 +47,12 @@ class AEBasic:
         # Training the AE
         self.autoencoder.train(x_train,
                                x_train,
+                               batch_size=64,
                                epochs=20,
                                shuffle=True,
                                validation_data=(x_test, x_test),
                                verbose=True,
-                               save_weights=False)
+                               save_weights=self.save_weigths)
 
     def run(self):
         # Training the autoencoder
@@ -131,5 +133,6 @@ class AEBasic:
 
 
 if __name__ == "__main__":
-    ae_basic = AEBasic(three_colors=True, save_image=False)
+    ae_basic = AEBasic(three_colors=True, save_image=False, save_weigths=False)
+
     ae_basic.run()

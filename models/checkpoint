@@ -1,2 +1,2 @@
-model_checkpoint_path: "autoencoder_weights_stacked"
-all_model_checkpoint_paths: "autoencoder_weights_stacked"
+model_checkpoint_path: "autoencoder_weights2"
+all_model_checkpoint_paths: "autoencoder_weights2"
