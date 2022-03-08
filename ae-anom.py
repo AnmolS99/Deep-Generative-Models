@@ -134,5 +134,5 @@ class AEAnom:
 
 
 if __name__ == "__main__":
-    ae_basic = AEAnom(three_colors=True, save_image=False)
+    ae_basic = AEAnom(three_colors=True, save_image=True)
     ae_basic.run()

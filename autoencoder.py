@@ -4,6 +4,9 @@ from tensorflow.keras.models import Model
 
 
 class AutoEncoder(Model):
+    """
+    Standard autoencoder, inherits from the tensorflow keras Model-class
+    """
 
     def __init__(self,
                  latent_dim,
@@ -13,6 +16,7 @@ class AutoEncoder(Model):
         self.latent_dim = latent_dim
         self.filename = filename
 
+        # The encoder
         self.encoder = tf.keras.Sequential([
             layers.Input(shape=(28, 28, 1)),
             layers.Conv2D(64, (3, 3),
@@ -32,6 +36,7 @@ class AutoEncoder(Model):
             layers.Dense(latent_dim, activation=tf.nn.leaky_relu)
         ])
 
+        # The decoder
         self.decoder = tf.keras.Sequential([
             layers.InputLayer(input_shape=(latent_dim, )),
             layers.Dense(16, activation=tf.nn.leaky_relu),
@@ -61,12 +66,15 @@ class AutoEncoder(Model):
         self.compile(optimizer='adam', loss=losses.BinaryCrossentropy())
 
     def call(self, x):
+        """
+        The call function
+        """
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
         return decoded
 
     def load_autoencoder_weights(self):
-        # noinspection PyBroadException
+        "Loading weights from file (if it is possible)"
         try:
             self.load_weights(filepath=self.filename)
             print(f"Read model from file, so I do not retrain")

@@ -64,7 +64,7 @@ class AEGen:
             generated_images = []
             for i in range(3):
                 # Creating random veactors to push through the decoder
-                z = np.abs(np.random.randn(self.n, self.latent_dim)) * 10
+                z = np.random.randn(self.n, self.latent_dim) * 10
                 decoded_imgs = self.autoencoder.decoder(z).numpy()
                 generated_images.append(np.squeeze(decoded_imgs))
 
@@ -72,7 +72,8 @@ class AEGen:
             generated_images = np.stack(generated_images, axis=-1)
 
             # Printing out quality and coverage
-            quality, _ = self.ver_net.check_predictability(generated_images)
+            quality, _ = self.ver_net.check_predictability(generated_images,
+                                                           tolerance=0.5)
             coverage = self.ver_net.check_class_coverage(generated_images)
             print("Quality: " + str(quality))
             print("Coverage: " + str(coverage))
@@ -81,7 +82,7 @@ class AEGen:
 
         else:
             # Creating random veactors to push through the decoder
-            z = np.abs(np.random.randn(self.n, self.latent_dim)) * 10
+            z = np.random.randn(self.n, self.latent_dim) * 10
             generated_images = self.autoencoder.decoder(z).numpy()
 
             # Printing out quality and coverage
@@ -120,5 +121,5 @@ class AEGen:
 
 
 if __name__ == "__main__":
-    ae_basic = AEGen(three_colors=True, save_image=False)
+    ae_basic = AEGen(three_colors=False, save_image=False)
     ae_basic.run()
