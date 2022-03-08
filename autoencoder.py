@@ -67,14 +67,16 @@ class AutoEncoder(Model):
 
     def call(self, x):
         """
-        The call function
+        The call function through the autoencoder
         """
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
         return decoded
 
     def load_autoencoder_weights(self):
-        "Loading weights from file (if it is possible)"
+        """
+        Loading weights from file (if it is possible)
+        """
         try:
             self.load_weights(filepath=self.filename)
             print(f"Read model from file, so I do not retrain")
@@ -97,11 +99,16 @@ class AutoEncoder(Model):
               validation_data=None,
               verbose=True,
               save_weights=False):
+        """
+        Training the autoencoder
+        """
 
+        # Attempting to weights from previously trained network
         self.done_training = self.load_autoencoder_weights()
 
         if save_weights or not self.done_training:
 
+            # Training the autoencoder
             self.fit(x=x,
                      y=y,
                      batch_size=batch_size,

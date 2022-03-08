@@ -6,16 +6,18 @@ from verification_net import VerificationNet
 
 
 class VAEGen:
+    """
+    VAE generative task: Generating images by sampling from latent space
+    """
 
     def __init__(self,
                  n=10,
-                 latent_dim=3,
+                 latent_dim=4,
                  three_colors=False,
                  save_weigths=False,
                  save_image=False) -> None:
         self.n = n
         self.latent_dim = latent_dim
-        # Creating VAE
         self.var_autoencoder = VariationalAutoEncoder(latent_dim)
         self.three_colors = three_colors
         self.save_weigths = save_weigths
@@ -24,6 +26,10 @@ class VAEGen:
         self.ver_net = VerificationNet()
 
     def get_generator(self, three_colors):
+        """
+        Returning the appropriate generator
+        """
+
         # Returning a generator that uses standard MNIST
         if three_colors:
             return StackedMNISTData(mode=DataMode.COLOR_BINARY_COMPLETE,
@@ -34,12 +40,18 @@ class VAEGen:
                                     default_batch_size=2048)
 
     def get_train_test(self, gen):
+        """
+        Getting the train and test data
+        """
         # Getting training and test data
         x_train, y_train = gen.get_full_data_set(training=True)
         x_test, y_test = gen.get_full_data_set(training=False)
         return x_train, y_train, x_test, y_test
 
     def train_var_autoencoder(self):
+        """
+        Training the variational autoencoder on single-channel images
+        """
         x_train, y_train, x_test, y_test = self.get_train_test(self.gen)
 
         # Reshaping
@@ -57,14 +69,25 @@ class VAEGen:
                                    save_weights=self.save_weigths)
 
     def run(self):
+        """
+        Generating new images and displaying the results
+        """
+
         # Training the autoencoder
         self.train_var_autoencoder()
 
+        # If we are going to generate stackedMNIST
         if self.three_colors:
+
             generated_images = []
+
+            # Creating a seperate image for each color-channel
             for i in range(3):
-                # Sending the images through the AE to get reconstructed images
+
+                # Sampling from prior distribution
                 z_sample = self.var_autoencoder.prior.sample(self.n)
+
+                # Sending the images through the AE to get reconstructed images
                 generated_image = self.var_autoencoder.decoder(
                     z_sample).mode().numpy()
                 generated_images.append(np.squeeze(generated_image))
@@ -78,7 +101,7 @@ class VAEGen:
             print("Quality: " + str(quality))
             print("Coverage: " + str(coverage))
 
-            self.show_figure(self.n, generated_images)
+            self.show_figure(10, generated_images[:10], quality, coverage)
 
         else:
             # Sending the images through the AE to get reconstructed images
@@ -92,9 +115,12 @@ class VAEGen:
             print("Quality: " + str(quality))
             print("Coverage: " + str(coverage))
 
-            self.show_figure(self.n, generated_images)
+            self.show_figure(10, generated_images[:10], quality, coverage)
 
-    def show_figure(self, n, generated):
+    def show_figure(self, n, generated, quality, coverage):
+        """
+        Plotting generated images
+        """
 
         # Showing the decoded images
         plt.figure(figsize=(20, 4))
@@ -105,7 +131,10 @@ class VAEGen:
             plt.gray()
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
-        plt.suptitle("" + str(n) + " generated images", fontsize="x-large")
+        plt.suptitle("" + str(n) + " of " + str(self.n) + " generated images" +
+                     " (Quality: " + str(quality) + ", Coverage: " +
+                     str(coverage) + ")",
+                     fontsize="x-large")
 
         # Choosing filepath
         if self.three_colors:
@@ -122,5 +151,5 @@ class VAEGen:
 
 
 if __name__ == "__main__":
-    vae_basic = VAEGen(three_colors=True, save_image=True)
+    vae_basic = VAEGen(10, three_colors=False, save_image=False)
     vae_basic.run()

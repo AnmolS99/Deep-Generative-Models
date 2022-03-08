@@ -1,6 +1,7 @@
 import tensorflow_probability as tfp
 import tensorflow as tf
 from tensorflow.keras.models import Model
+from tensorflow.keras import layers
 
 tfk = tf.keras
 tfkl = tfk.layers
@@ -9,6 +10,9 @@ tfpl = tfp.layers
 
 
 class VariationalAutoEncoder(Model):
+    """
+    Variational autoencoder
+    """
 
     def __init__(self,
                  latent_dim,
@@ -17,41 +21,81 @@ class VariationalAutoEncoder(Model):
         self.latent_dim = latent_dim
         self.filename = filename
 
+        # Prior distribution p(z), an combination of multiple standard Gaussian distributions
         self.prior = tfd.Independent(tfd.Normal(loc=tf.zeros(latent_dim),
                                                 scale=1),
                                      reinterpreted_batch_ndims=1)
 
+        # The encoder, q(z|x)
         self.encoder = tfk.Sequential([
-            tfkl.Input(shape=(28, 28, 1)),
-            tfkl.Flatten(),
-            tfkl.Dense(784, activation=tf.nn.leaky_relu),
-            tfkl.Dense(512, activation=tf.nn.leaky_relu),
-            tfkl.Dense(128, activation=tf.nn.leaky_relu),
-            tfkl.Dense(32, activation=tf.nn.leaky_relu),
-            tfkl.Dense(16, activation=tf.nn.leaky_relu),
+            layers.Input(shape=(28, 28, 1)),
+            layers.Conv2D(64, (3, 3),
+                          activation=tf.nn.leaky_relu,
+                          padding='same',
+                          strides=2),
+            layers.Conv2D(32, (3, 3),
+                          activation=tf.nn.leaky_relu,
+                          padding='same',
+                          strides=2),
+            layers.Conv2D(16, (3, 3),
+                          activation=tf.nn.leaky_relu,
+                          padding='same',
+                          strides=1),
+            layers.Flatten(),
+            layers.Dense(256, activation=tf.nn.leaky_relu),
+            layers.Dense(128, activation=tf.nn.leaky_relu),
+            layers.Dense(64, activation=tf.nn.leaky_relu),
+            layers.Dense(32, activation=tf.nn.leaky_relu),
             tfkl.Dense(tfpl.MultivariateNormalTriL.params_size(latent_dim),
                        activation=None),
+            # Activity regularizer makes sure that the encoder distribution stays close
+            # to the prior distribution (this is what the KLDivergence term in ELBO does)
             tfpl.MultivariateNormalTriL(
                 latent_dim,
                 activity_regularizer=tfpl.KLDivergenceRegularizer(self.prior)),
         ])
 
+        # The decoder, p(x|z)
         self.decoder = tfk.Sequential([
-            tfkl.Dense(16, activation=tf.nn.leaky_relu),
-            tfkl.Dense(32, activation=tf.nn.leaky_relu),
-            tfkl.Dense(128, activation=tf.nn.leaky_relu),
-            tfkl.Dense(512, activation=tf.nn.leaky_relu),
-            tfkl.Dense(784),
+            layers.InputLayer(input_shape=(latent_dim, )),
+            layers.Dense(32, activation=tf.nn.leaky_relu),
+            layers.Dense(64, activation=tf.nn.leaky_relu),
+            layers.Dense(128, activation=tf.nn.leaky_relu),
+            layers.Dense(256, activation=tf.nn.leaky_relu),
+            layers.Dense(7 * 7 * 16, activation=tf.nn.leaky_relu),
+            layers.Reshape((7, 7, 16)),
+            layers.Conv2DTranspose(16,
+                                   kernel_size=3,
+                                   strides=1,
+                                   activation=tf.nn.leaky_relu,
+                                   padding='same'),
+            layers.Conv2DTranspose(32,
+                                   kernel_size=3,
+                                   strides=2,
+                                   activation=tf.nn.leaky_relu,
+                                   padding='same'),
+            layers.Conv2DTranspose(64,
+                                   kernel_size=3,
+                                   strides=2,
+                                   activation=tf.nn.leaky_relu,
+                                   padding='same'),
+            layers.Conv2D(1, kernel_size=(3, 3), padding='same'),
+            layers.Flatten(),
+            # Pixel-independent Bernoulli distribution
             tfpl.IndependentBernoulli((28, 28, 1), tfd.Bernoulli.logits),
         ])
 
-        # Compiling the model
+        # The first term in ELBO, the reconstruction loss
         negloglik = lambda x, rv_x: -rv_x.log_prob(x)
+
+        # Compiling the model
         self.compile(optimizer=tf.optimizers.Adam(learning_rate=1e-3),
                      loss=negloglik)
 
     def load_var_autoencoder_weights(self):
-        # noinspection PyBroadException
+        """
+        Loading weights from file (if it is possible)
+        """
         try:
             self.load_weights(filepath=self.filename)
             print(f"Read model from file, so I do not retrain")
@@ -74,11 +118,16 @@ class VariationalAutoEncoder(Model):
               validation_data=None,
               verbose=True,
               save_weights=False):
+        """
+        Training the autoencoder
+        """
 
+        # Attempting to load in trained weights
         self.done_training = self.load_var_autoencoder_weights()
 
         if save_weights or not self.done_training:
 
+            # Training the variational autoencoder
             self.fit(x=x,
                      y=y,
                      batch_size=batch_size,
@@ -94,6 +143,9 @@ class VariationalAutoEncoder(Model):
         return self.done_training
 
     def call(self, x):
+        """
+        The call function, sending x through the variational autoencoder
+        """
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
         return decoded

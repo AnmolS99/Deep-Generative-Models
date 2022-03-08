@@ -7,10 +7,13 @@ from verification_net import VerificationNet
 
 
 class VAEAnom:
+    """
+    VAE anomaly task: Detecting most anomolous images
+    """
 
     def __init__(self,
                  n=24,
-                 latent_dim=3,
+                 latent_dim=4,
                  three_colors=False,
                  save_weigths=False,
                  save_image=False) -> None:
@@ -26,14 +29,18 @@ class VAEAnom:
         self.ver_net = VerificationNet()
 
     def get_generators(self, three_colors):
-        # Returning a generator that uses standard MNIST
+        """
+        Returning the appropriate generator
+        """
+
+        # Returning a generator that uses stacked MNIST
         if three_colors:
             gen_missing = StackedMNISTData(mode=DataMode.COLOR_BINARY_MISSING,
                                            default_batch_size=2048)
 
             gen_complete = StackedMNISTData(
                 mode=DataMode.COLOR_BINARY_COMPLETE, default_batch_size=2048)
-        # Returning a generator that uses stacked MNIST
+        # Returning a generator that uses standard MNIST
         else:
             gen_missing = StackedMNISTData(mode=DataMode.MONO_BINARY_MISSING,
                                            default_batch_size=2048)
@@ -43,13 +50,19 @@ class VAEAnom:
         return gen_missing, gen_complete
 
     def get_train_test(self, gen_missing, gen_complete):
-        # Getting training (missing the number 8) and test data (includes all numbers)
+        """
+        Getting training (missing the number 8) and test data (includes all numbers)
+        """
         x_train, y_train = gen_missing.get_full_data_set(training=True)
         x_test, y_test = gen_complete.get_full_data_set(training=False)
 
         return x_train, y_train, x_test, y_test
 
     def train_var_autoencoder(self):
+        """
+        Training the autoencoder on single-channel images
+        """
+
         x_train, y_train, x_test, y_test = self.get_train_test(
             self.generators[0], self.generators[1])
 
@@ -68,20 +81,29 @@ class VAEAnom:
                                    save_weights=self.save_weigths)
 
     def run(self):
+        """
+        Detecting anomolous images and displaying the results
+        """
+
         # Training the autoencoder
         self.train_var_autoencoder()
 
+        # Getting train and test set
         x_train, y_train, x_test, y_test = self.get_train_test(
             self.generators[0], self.generators[1])
 
-        samples = 1000
+        # Reducing x_test case to decrease run time
         x_test_set = x_test[:1000]
+
+        # Sampling 1000 z's from prior distribution and decoding them
+        samples = 1000
         z = self.var_autoencoder.prior.sample(samples)
         decoded_z_imgs = self.var_autoencoder.decoder(z).mode().numpy()
         bin_cross = tf.keras.losses.BinaryCrossentropy()
         probs = []
         x_num = 0
 
+        # If stacked images
         if self.three_colors:
             # Iterating over the different x in the test set
             for x in x_test_set:
@@ -97,52 +119,70 @@ class VAEAnom:
                         # Reshaping
                         x_channel = x[:, :, [j]]
                         x_channel = x_channel.reshape(1, 28, 28, 1)
+
+                        # Calculating -log p(x_channel|z_i)
                         neglogprob = bin_cross(x_channel, decoded_z_imgs[i])
+
+                        # Transform to the probability p(x_channel|z_i)
                         prob += np.exp(-neglogprob)
+
+                    # Adding p(x|z_i) to the list
                     x_prob.append(prob)
+
                 x_prob = np.array(x_prob)
 
-                # Taking the mean
+                # Appending the mean of all the p(x|z_i), so we get an approximate for p(x)
                 probs.append(np.mean(x_prob))
 
             probs = np.array(probs)
 
-            # Index of the n-lowest values
+            # Retrieving the x's with the lowest probabilities p(x)
             idx = np.argpartition(probs, self.n)
             lowest_prob_x = x_test_set[idx[:self.n]]
 
             self.show_figure(self.n, lowest_prob_x)
 
         else:
-
+            # Iterating over the different x in the test set
             for x in x_test_set:
                 print("On x_test_set case: " + str(x_num))
                 x_num += 1
 
                 x_prob = []
+
+                # Comparing each x with every sample
                 for i in range(samples):
+
+                    # Calculating -log p(x|z_i)
                     neglogprob = bin_cross(x, decoded_z_imgs[i])
+
+                    # Transform to the probability p(x|z_i)
                     prob = np.exp(-neglogprob)
+
+                    # Adding p(x|z_i) to the list
                     x_prob.append(prob)
+
                 x_prob = np.array(x_prob)
 
-                # Taking the mean
+                # Appending the mean of all the p(x|z_i), so we get an approximate for p(x)
                 probs.append(np.mean(x_prob))
 
             probs = np.array(probs)
 
-            # Index of the n-lowest values
+            # Retrieving the x's with the lowest probabilities p(x)
             idx = np.argpartition(probs, self.n)
             lowest_prob_x = x_test_set[idx[:self.n]]
 
             self.show_figure(self.n, lowest_prob_x)
 
     def show_figure(self, n, anomalous):
+        """
+        Plotting anomolous images
+        """
 
-        # Showing the original images and reconstructed images
         plt.figure(figsize=(20, 6))
         for i in range(n):
-            # display original
+            # display anomolous image
             ax = plt.subplot(3, n // 3, i + 1)
             plt.imshow(anomalous[i].astype(np.float64))
             plt.gray()
@@ -167,5 +207,5 @@ class VAEAnom:
 
 
 if __name__ == "__main__":
-    vae_basic = VAEAnom(three_colors=False, save_image=False)
+    vae_basic = VAEAnom(three_colors=True, save_image=True)
     vae_basic.run()

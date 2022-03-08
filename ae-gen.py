@@ -6,6 +6,9 @@ from verification_net import VerificationNet
 
 
 class AEGen:
+    """
+    Autoencoder generative task: Generating images by sampling from latent space
+    """
 
     def __init__(self,
                  n=10,
@@ -15,7 +18,6 @@ class AEGen:
                  save_image=False) -> None:
         self.n = n
         self.latent_dim = latent_dim
-        # Creating AutoEncoder
         self.autoencoder = AutoEncoder(latent_dim)
         self.three_colors = three_colors
         self.save_weigths = save_weigths
@@ -24,6 +26,9 @@ class AEGen:
         self.ver_net = VerificationNet()
 
     def get_generator(self, three_colors):
+        """
+        Returning the appropriate generator
+        """
         # Returning a generator that uses standard MNIST
         if three_colors:
             return StackedMNISTData(mode=DataMode.COLOR_BINARY_COMPLETE,
@@ -34,12 +39,17 @@ class AEGen:
                                     default_batch_size=2048)
 
     def get_train_test(self, gen):
-        # Getting training and test data
+        """
+        Getting the train and test data
+        """
         x_train, y_train = gen.get_full_data_set(training=True)
         x_test, y_test = gen.get_full_data_set(training=False)
         return x_train, y_train, x_test, y_test
 
     def train_autoencoder(self):
+        """
+        Training the autoencoder on single-channel images
+        """
         x_train, y_train, x_test, y_test = self.get_train_test(self.gen)
 
         # Reshaping
@@ -57,14 +67,17 @@ class AEGen:
                                save_weights=self.save_weigths)
 
     def run(self):
+        """
+        Generating new images and displaying the results
+        """
         # Training the autoencoder
         self.train_autoencoder()
 
         if self.three_colors:
             generated_images = []
             for i in range(3):
-                # Creating random veactors to push through the decoder
-                z = np.random.randn(self.n, self.latent_dim) * 10
+                # Creating random vectors to push through the decoder
+                z = np.random.randn(self.n, self.latent_dim) * 20
                 decoded_imgs = self.autoencoder.decoder(z).numpy()
                 generated_images.append(np.squeeze(decoded_imgs))
 
@@ -78,10 +91,10 @@ class AEGen:
             print("Quality: " + str(quality))
             print("Coverage: " + str(coverage))
 
-            self.show_figure(self.n, generated_images)
+            self.show_figure(10, generated_images, quality, coverage)
 
         else:
-            # Creating random veactors to push through the decoder
+            # Creating random vectors to push through the decoder
             z = np.random.randn(self.n, self.latent_dim) * 10
             generated_images = self.autoencoder.decoder(z).numpy()
 
@@ -91,9 +104,12 @@ class AEGen:
             print("Quality: " + str(quality))
             print("Coverage: " + str(coverage))
 
-            self.show_figure(self.n, generated_images)
+            self.show_figure(10, generated_images, quality, coverage)
 
-    def show_figure(self, n, generated):
+    def show_figure(self, n, generated, quality, coverage):
+        """
+        Plotting generated images
+        """
 
         # Showing the decoded images
         plt.figure(figsize=(20, 4))
@@ -104,8 +120,10 @@ class AEGen:
             plt.gray()
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
-        plt.suptitle("" + str(n) + " generated images", fontsize="x-large")
-
+        plt.suptitle("" + str(n) + " of " + str(self.n) + " generated images" +
+                     " (Quality: " + str(quality) + ", Coverage: " +
+                     str(coverage) + ")",
+                     fontsize="x-large")
         # Choosing filepath
         if self.three_colors:
             path = "./results/ae-gen-color"
@@ -121,5 +139,5 @@ class AEGen:
 
 
 if __name__ == "__main__":
-    ae_basic = AEGen(three_colors=False, save_image=False)
+    ae_basic = AEGen(10, three_colors=False, save_image=False)
     ae_basic.run()
