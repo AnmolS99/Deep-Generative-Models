@@ -74,7 +74,7 @@ class VAEAnom:
         self.var_autoencoder.train(x_train,
                                    x_train,
                                    batch_size=512,
-                                   epochs=20,
+                                   epochs=100,
                                    shuffle=True,
                                    validation_data=(x_test, x_test),
                                    verbose=True,
@@ -95,7 +95,7 @@ class VAEAnom:
         # Reducing x_test case to decrease run time
         x_test_set = x_test[:1000]
 
-        # Sampling 1000 z's from prior distribution and decoding them
+        # Sampling 5000 z's from prior distribution and decoding them
         samples = 1000
         z = self.var_autoencoder.prior.sample(samples)
         decoded_z_imgs = self.var_autoencoder.decoder(z).mode().numpy()
@@ -207,5 +207,5 @@ class VAEAnom:
 
 
 if __name__ == "__main__":
-    vae_basic = VAEAnom(three_colors=True, save_image=True)
+    vae_basic = VAEAnom(three_colors=True, save_image=True, save_weigths=True)
     vae_basic.run()

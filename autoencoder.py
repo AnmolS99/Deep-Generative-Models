@@ -62,7 +62,7 @@ class AutoEncoder(Model):
                           padding='same')
         ])
 
-        # Compiling the autoencoder
+        # Compiling the autoencoder, with binary-cross entropy as loss function
         self.compile(optimizer='adam', loss=losses.BinaryCrossentropy())
 
     def call(self, x):
