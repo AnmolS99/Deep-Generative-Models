@@ -1,8 +1,8 @@
 from stacked_mnist import StackedMNISTData, DataMode
-from tensorflow import keras
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
+import tensorflow as tf
 import numpy as np
+
+tfk = tf.keras
 
 
 class VerificationNet:
@@ -18,24 +18,24 @@ class VerificationNet:
         self.force_relearn = force_learn
         self.file_name = file_name
 
-        model = Sequential()
+        model = tfk.models.Sequential()
         model.add(
-            Conv2D(32,
-                   kernel_size=(3, 3),
-                   activation='relu',
-                   input_shape=(28, 28, 1)))
+            tfk.layers.Conv2D(32,
+                              kernel_size=(3, 3),
+                              activation='relu',
+                              input_shape=(28, 28, 1)))
         for _ in range(2):
-            model.add(Conv2D(64, (3, 3), activation='relu'))
-            model.add(MaxPooling2D(pool_size=(2, 2)))
-            model.add(Dropout(0.25))
+            model.add(tfk.layers.Conv2D(64, (3, 3), activation='relu'))
+            model.add(tfk.layers.MaxPooling2D(pool_size=(2, 2)))
+            model.add(tfk.layers.Dropout(0.25))
 
-        model.add(Flatten())
-        model.add(Dense(128, activation='relu'))
-        model.add(Dropout(0.5))
-        model.add(Dense(10, activation='softmax'))
+        model.add(tfk.layers.Flatten())
+        model.add(tfk.layers.Dense(128, activation='relu'))
+        model.add(tfk.layers.Dropout(0.5))
+        model.add(tfk.layers.Dense(10, activation='softmax'))
 
-        model.compile(loss=keras.losses.categorical_crossentropy,
-                      optimizer=keras.optimizers.Adam(lr=.01),
+        model.compile(loss=tfk.losses.categorical_crossentropy,
+                      optimizer=tfk.optimizers.Adam(lr=.01),
                       metrics=['accuracy'])
 
         self.model = model
@@ -70,11 +70,10 @@ class VerificationNet:
 
             # "Translate": Only look at "red" channel; only use the last digit. Use one-hot for labels during training
             x_train = x_train[:, :, :, [0]]
-            y_train = keras.utils.to_categorical((y_train % 10).astype(np.int),
-                                                 10)
+            y_train = tfk.utils.to_categorical((y_train % 10).astype(np.int),
+                                               10)
             x_test = x_test[:, :, :, [0]]
-            y_test = keras.utils.to_categorical((y_test % 10).astype(np.int),
-                                                10)
+            y_test = tfk.utils.to_categorical((y_test % 10).astype(np.int), 10)
 
             # Fit model
             self.model.fit(x=x_train,

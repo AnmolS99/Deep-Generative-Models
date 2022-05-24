@@ -95,8 +95,8 @@ class VAEAnom:
         # Reducing x_test case to decrease run time
         x_test_set = x_test[:1000]
 
-        # Sampling 5000 z's from prior distribution and decoding them
-        samples = 1000
+        # Sampling 10000 z's from prior distribution and decoding them
+        samples = 10000
         z = self.var_autoencoder.prior.sample(samples)
         decoded_z_imgs = self.var_autoencoder.decoder(z).mode().numpy()
         bin_cross = tf.keras.losses.BinaryCrossentropy()
@@ -207,5 +207,7 @@ class VAEAnom:
 
 
 if __name__ == "__main__":
-    vae_basic = VAEAnom(three_colors=True, save_image=True, save_weigths=True)
+    vae_basic = VAEAnom(three_colors=False,
+                        save_image=False,
+                        save_weigths=False)
     vae_basic.run()

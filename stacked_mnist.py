@@ -1,29 +1,28 @@
 import numpy as np
-from tensorflow.keras.datasets import mnist
+import tensorflow as tf
 import matplotlib.pyplot as plt
 from enum import auto, Enum
 
+tfk = tf.keras
 
-class DataMode (Enum):
+
+class DataMode(Enum):
     """
     The definitions of data modes -- mono or color,  binary or float,
     all classes or one missing. Standard setup would be MONO_BINARY_COMPLETE
     """
-
     """
     MONO_BINARY_COMPLETE:
     Standard one-channel MNIST dataset. All classes represented. Binarized.
     Use for learning standard generative models, check coverage, etc.
     """
     MONO_BINARY_COMPLETE = auto()
-
     """
     MONO_BINARY_MISSING: 
     Standard one-channel MNIST dataset, but one class taken out. 
     Use for testing "anomaly detection". Binarized. 
     """
     MONO_BINARY_MISSING = auto()
-
     """
     MONO_FLOAT_COMPLETE: 
     Standard one-channel MNIST dataset, All classes there. 
@@ -31,7 +30,6 @@ class DataMode (Enum):
     Can be easier to learn, but does not give as easy a probabilistic understanding.
     """
     MONO_FLOAT_COMPLETE = auto()
-
     """    
     MONO_FLOAT_MISSING:
     Standard one-channel MNIST dataset, but one class taken out. 
@@ -39,7 +37,6 @@ class DataMode (Enum):
     Can be easier to learn, but does not give as easy a probabilistic understanding.
     """
     MONO_FLOAT_MISSING = auto()
-
     """
     COLOR_<WHATEVER>: 
     These are *STACKED* versions of MNIST, i.e., three color channels with one digit in each channel.
@@ -62,42 +59,48 @@ class StackedMNISTData:
     channel 1 counting the tens for the green channel, and channel 2 counting the hundreds for the blue.
     """
 
-    def __init__(self, mode: DataMode, default_batch_size: np.int = 256) -> None:
+    def __init__(self,
+                 mode: DataMode,
+                 default_batch_size: np.int = 256) -> None:
         # Load MNIST and put in internals
         self.default_batch_size = default_batch_size
 
         # Color or not
-        if mode in [DataMode.MONO_BINARY_COMPLETE,
-                    DataMode.MONO_BINARY_MISSING,
-                    DataMode.MONO_FLOAT_COMPLETE,
-                    DataMode.MONO_FLOAT_MISSING]:
+        if mode in [
+                DataMode.MONO_BINARY_COMPLETE, DataMode.MONO_BINARY_MISSING,
+                DataMode.MONO_FLOAT_COMPLETE, DataMode.MONO_FLOAT_MISSING
+        ]:
             self.channels = 1
         else:
             self.channels = 3
 
         # Drop digit eight?
-        if mode in [DataMode.MONO_BINARY_COMPLETE,
-                    DataMode.MONO_FLOAT_COMPLETE,
-                    DataMode.COLOR_BINARY_COMPLETE,
-                    DataMode.COLOR_FLOAT_COMPLETE]:
+        if mode in [
+                DataMode.MONO_BINARY_COMPLETE, DataMode.MONO_FLOAT_COMPLETE,
+                DataMode.COLOR_BINARY_COMPLETE, DataMode.COLOR_FLOAT_COMPLETE
+        ]:
             self.remove_class = None
         else:
             self.remove_class = 8
 
         # Binarize the data?
-        if mode in [DataMode.MONO_BINARY_COMPLETE,
-                    DataMode.MONO_BINARY_MISSING,
-                    DataMode.COLOR_BINARY_COMPLETE,
-                    DataMode.COLOR_BINARY_MISSING]:
+        if mode in [
+                DataMode.MONO_BINARY_COMPLETE, DataMode.MONO_BINARY_MISSING,
+                DataMode.COLOR_BINARY_COMPLETE, DataMode.COLOR_BINARY_MISSING
+        ]:
             self.make_binary = True
         else:
             self.make_binary = False
 
-        (self.train_images, self.train_labels), (self.test_images, self.test_labels) = mnist.load_data()
+        (self.train_images, self.train_labels), (
+            self.test_images,
+            self.test_labels) = tfk.datasets.mnist.load_data()
         self.train_images = np.expand_dims(self.train_images, axis=-1)
         self.test_images = np.expand_dims(self.test_images, axis=-1)
-        self.train_images, self.train_labels = self.__prepare_data_set(training=True)
-        self.test_images, self.test_labels = self.__prepare_data_set(training=False)
+        self.train_images, self.train_labels = self.__prepare_data_set(
+            training=True)
+        self.test_images, self.test_labels = self.__prepare_data_set(
+            training=False)
 
     def get_full_data_set(self, training: bool = True) -> tuple:
         """
@@ -145,19 +148,26 @@ class StackedMNISTData:
 
             # Choose the images to get a thing that is <default_batch_size, 28, 28, self.channels>
             # where the last dim is over the dims of the indexes
-            generated_images = np.zeros(shape=(images.shape[0], 28, 28, self.channels),
+            generated_images = np.zeros(shape=(images.shape[0], 28, 28,
+                                               self.channels),
                                         dtype=images.dtype)
-            generated_labels = np.zeros(shape=(images.shape[0],), dtype=np.int)
+            generated_labels = np.zeros(shape=(images.shape[0], ),
+                                        dtype=np.int)
             for channel in range(self.channels):
-                generated_images[:, :, :, channel] = images[indexes[:, channel], :, :, 0]
-                generated_labels += np.power(10, channel) * labels[indexes[:, channel]]
+                generated_images[:, :, :,
+                                 channel] = images[indexes[:, channel], :, :,
+                                                   0]
+                generated_labels += np.power(
+                    10, channel) * labels[indexes[:, channel]]
 
             images = generated_images.copy()
             labels = generated_labels.copy()
 
         return images, labels
 
-    def get_random_batch(self, training: bool = True, batch_size: np.int = None) -> tuple:
+    def get_random_batch(self,
+                         training: bool = True,
+                         batch_size: np.int = None) -> tuple:
         """
         Generate a batch of data. We can choose to use training or testing data.
         Also, we can ask for a specific batch-size (if we don't, we use the default
@@ -181,7 +191,9 @@ class StackedMNISTData:
 
         return images, labels
 
-    def batch_generator(self, training: bool = True, batch_size: np.int = None) -> tuple:
+    def batch_generator(self,
+                        training: bool = True,
+                        batch_size: np.int = None) -> tuple:
         """
         Create a  batch generator. We can choose to use training or testing data.
         Also, we can ask for a specific batch-size (if we don't, we use the default
@@ -203,10 +215,13 @@ class StackedMNISTData:
         while start_position < no_elements:
             end_position = np.min([start_position + batch_size, no_elements])
 
-            yield images[start_position:end_position],  labels[start_position:end_position]
+            yield images[start_position:end_position], labels[
+                start_position:end_position]
             start_position = end_position
 
-    def plot_example(self, images: np.ndarray = None, labels: np.ndarray = None) -> None:
+    def plot_example(self,
+                     images: np.ndarray = None,
+                     labels: np.ndarray = None) -> None:
         """
         Plot data in RGB (3-channel data) or monochrome (one-channel data).
         If data is submitted, we need to generate an example.
@@ -238,10 +253,10 @@ class StackedMNISTData:
 
 
 if __name__ == "__main__":
-    gen = StackedMNISTData(mode=DataMode.COLOR_BINARY_MISSING, default_batch_size=9)
+    gen = StackedMNISTData(mode=DataMode.COLOR_BINARY_MISSING,
+                           default_batch_size=9)
     img, cls = gen.get_random_batch(batch_size=9)
     gen.plot_example(images=img, labels=cls)
 
     for (img, cls) in gen.batch_generator(training=False, batch_size=2048):
         print(f"Batch has size: Images: {img.shape}; Labels {cls.shape}")
-
