@@ -93,7 +93,7 @@ class VAEAnom:
             self.generators[0], self.generators[1])
 
         # Reducing x_test case to decrease run time
-        x_test_set = x_test[:1000]
+        x_test_set = x_test[:30]
 
         # Sampling 10000 z's from prior distribution and decoding them
         samples = 10000

@@ -152,5 +152,5 @@ class VAEGen:
 
 
 if __name__ == "__main__":
-    vae_basic = VAEGen(10, 10, three_colors=False, save_image=False)
+    vae_basic = VAEGen(three_colors=False, save_image=False)
     vae_basic.run()

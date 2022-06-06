@@ -159,6 +159,8 @@ class AEBasic:
 
 
 if __name__ == "__main__":
-    ae_basic = AEBasic(three_colors=True, save_image=False, save_weigths=False)
+    ae_basic = AEBasic(three_colors=False,
+                       save_image=False,
+                       save_weigths=False)
 
     ae_basic.run()
