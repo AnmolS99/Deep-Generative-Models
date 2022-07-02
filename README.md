@@ -66,5 +66,5 @@ The standard autoencoder is more consisting at picking the anomolous number (8),
 
 Further work on this project could include:
 
-1. **Optimizing performance**: This especially relates to anomaly detection, where more extensive use of numpy functions could make this mode more time efficient.
-2. **Train models on other datasets**: It could be interesting to test these autoencoders on datasets other than MNIST, especially the generative mode.
+* **Optimizing performance**: This especially relates to anomaly detection, where more extensive use of numpy functions could make this mode more time efficient.
+* **Train models on other datasets**: It could be interesting to test these autoencoders on datasets other than MNIST, especially the generative mode.
